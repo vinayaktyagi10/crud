@@ -10,6 +10,7 @@ db = mysql.connector.connect(
     user=os.getenv("MYSQL_USER", "user"),
     password=os.getenv("MYSQL_PASSWORD", "password"),
     database=os.getenv("MYSQL_DATABASE", "cruddb"),
+    port=3306,
 )
 cursor = db.cursor(dictionary=True)
 
@@ -18,7 +19,6 @@ cursor.execute("""
 CREATE TABLE IF NOT EXISTS users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(100) UNIQUE,
-    email VARCHAR(100) UNIQUE,
     password VARCHAR(255)
 )
 """)
@@ -30,32 +30,31 @@ db.commit()
 
 @app.route("/api/register", methods=["POST"])
 def register():
-    data = request.json
-    username, email, password = (
+    data = request.get_json()
+    username, password = (
         data.get("username"),
-        data.get("email"),
         data.get("password"),
     )
 
-    if not username or not email or not password:
+    if not username or not password:
         return jsonify({"error": "Missing fields"}), 400
 
     try:
         cursor.execute(
-            "INSERT INTO users (username, email, password) VALUES (%s, %s, %s)",
-            (username, email, password),
+            "INSERT INTO users (username, password) VALUES (%s, %s)",
+            (username, password),
         )
         db.commit()
         return jsonify({"message": "User registered"}), 201
     except mysql.connector.IntegrityError as e:
-        if "Duplicate entry" in str(e):
-            return jsonify({"error": "Username or email already exists"}), 409
+        if e.errno == 1062:  # handles duplicate entry as MySQL duplicate key.
+            return jsonify({"error": "Username already exists"}), 409
         return jsonify({"error": "Database error"}), 500
 
 
 @app.route("/api/login", methods=["POST"])
 def login():
-    data = request.json
+    data = request.get_json()
     username, password = data.get("username"), data.get("password")
 
     cursor.execute(
@@ -69,7 +68,7 @@ def login():
 
 @app.route("/api/update_pass", methods=["POST"])
 def update_pass():
-    data = request.json
+    data = request.get_json()
     username, old_pass, new_pass = (
         data.get("username"),
         data.get("old_password"),
@@ -97,7 +96,7 @@ def update_pass():
 
 @app.route("/api/delete", methods=["POST"])
 def delete_user():
-    data = request.json
+    data = request.get_json()
     username = data.get("username")
 
     if not username:
