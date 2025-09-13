@@ -64,6 +64,22 @@ def update_pass():
     return jsonify({"message": "Password updated successfully"}), 200
 
 
+@app.route("/api/delete", methods=["POST"])
+def delete_user():
+    data = request.get_json()
+    if not data or "id" not in data or "password" not in data:
+        return jsonify({"error": "Missing 'id' or 'password'"}), 400
+    user_id = data["id"]
+    password = data["password"]
+    user = users_collection.find_one({"id": user_id})
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    if user["password"] != password:
+        return jsonify({"error": "Incorrect password"}), 401
+    users_collection.delete_one({"id": user_id})
+    return jsonify({"message": "User deleted"}), 200
+
+
 # ------------------- MAIN -------------------
 
 if __name__ == "__main__":
