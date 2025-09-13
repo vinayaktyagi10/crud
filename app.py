@@ -27,7 +27,7 @@ def add_user():
         return jsonify({"error": str(e)}), 500
 
 
-@app.route("/api/login", methods=["GET", "POST"])
+@app.route("/api/login", methods=["POST"])
 def login():
     data = request.get_json()
     if not data or "id" not in data or "password" not in data:
