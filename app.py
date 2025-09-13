@@ -31,7 +31,7 @@ def add_user():
 def login():
     data = request.get_json()
     if not data or "id" not in data or "password" not in data:
-        return jsonify({"error": "Wrong 'id' or 'password'"}), 400
+        return jsonify({"error": "Missing 'id' or 'password'"}), 400
     user_id = data["id"]
     password = data["password"]
     user = users_collection.find_one({"id": user_id})
@@ -40,6 +40,28 @@ def login():
     if user["password"] != password:
         return jsonify({"error": "Incorrect password"}), 401
     return jsonify({"message": "User logged in"}), 200
+
+
+@app.route("/api/update", methods=["POST"])
+def update_pass():
+    data = request.get_json()
+    if (
+        not data
+        or "id" not in data
+        or "old_password" not in data
+        or "new_password" not in data
+    ):
+        return jsonify({"error": "Missing 'id', 'old_password' or 'new_password"}), 400
+    user_id = data["id"]
+    old_password = data["old_password"]
+    new_password = data["new_password"]
+    user = users_collection.find_one({"id": user_id})
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    if user["password"] != old_password:
+        return jsonify({"error": "Incorrect old password"}), 401
+    users_collection.update_one({"id": user_id}, {"$set": {"password": new_password}})
+    return jsonify({"message": "Password updated successfully"}), 200
 
 
 # ------------------- MAIN -------------------
